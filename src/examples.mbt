@@ -4,6 +4,7 @@
 // ==================== 基础聊天示例 ====================
 
 // 示例1: 基础聊天 - 直接使用API密钥
+
 ///|
 pub async fn example_basic_chat_with_key() -> Result[String, OpenAIError] {
   // 替换为你的真实API密钥
@@ -105,7 +106,6 @@ pub fn example_client_configuration() -> OpenAIClient {
   ) = config
   if base_url != "https://api.openai.com/v1" {
     let _ : Unit = panic()
-
   }
   client
 }

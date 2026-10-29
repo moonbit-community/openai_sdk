@@ -2,9 +2,12 @@
 // 将真实HTTP请求代理到统一实现
 
 // 将 Array[String] 形式的 header（"Key: Value"）转换为 Map[String, String]
+
 ///|
-fn headers_array_to_map(headers : Array[String]) -> Map[String, String] {
-  let map = {}
+fn headers_array_to_map(
+  headers : Array[String],
+) -> Map[@http.CaseInsensitiveString, String] {
+  let map : Map[@http.CaseInsensitiveString, String] = Map([])
   let mut i = 0
   while i < headers.length() {
     let item = headers.get(i)
@@ -20,7 +23,7 @@ fn headers_array_to_map(headers : Array[String]) -> Map[String, String] {
             // Preserve original header key casing when passing to HTTP client
             let key = trim(key_raw)
             let value = trim(value_raw)
-            map[key] = value
+            map[@http.CaseInsensitiveString(key)] = value
           }
         }
       }
@@ -40,28 +43,28 @@ pub async fn perform_real_http_request(
   url : String,
   headers : Array[String],
   body : String,
-  timeout : Int,
+  timeout : Int32,
 ) -> Result[HttpResponse, HttpError] {
   // 将传入的 header 数组转换为 Map，供 async/http 使用
   let header_map = headers_array_to_map(headers)
 
   // 使用 async 超时保护（单位毫秒）
   let timeout_ms = if timeout <= 0 { 30000 } else { timeout * 1000 }
-  let maybe_result = @async.with_timeout_opt(timeout_ms, fn() {
+  let maybe_result = @async.with_timeout_opt(timeout_ms, () => {
     if http_method == "POST" {
       let (resp, resp_body) = @http.post(url, body, headers=header_map)
       let text = resp_body.text()
-      let out_headers = headers_map_to_array(resp.headers)
+      let out_headers = response_headers_to_array(resp.headers)
       Ok((resp.code, out_headers, text))
     } else if http_method == "GET" {
       let (resp, resp_body) = @http.get(url, headers=header_map)
       let text = resp_body.text()
-      let out_headers = headers_map_to_array(resp.headers)
+      let out_headers = response_headers_to_array(resp.headers)
       Ok((resp.code, out_headers, text))
     } else if http_method == "PUT" {
       let (resp, resp_body) = @http.put(url, body, headers=header_map)
       let text = resp_body.text()
-      let out_headers = headers_map_to_array(resp.headers)
+      let out_headers = response_headers_to_array(resp.headers)
       Ok((resp.code, out_headers, text))
     } else {
       Err(("unsupported_method", 0, "Unsupported HTTP method: " + http_method))
@@ -85,4 +88,15 @@ pub async fn perform_real_http_request(
 ///|
 pub fn new_real_http_client(base_url : String) -> HttpClient {
   (base_url, 30, 3, "Real-Network-Client/1.0")
+}
+
+///|
+fn response_headers_to_array(
+  headers : Map[@http.CaseInsensitiveString, String],
+) -> Array[String] {
+  let plain : Map[String, String] = Map([])
+  for key, value in headers {
+    plain[key.to_string()] = value
+  }
+  headers_map_to_array(plain)
 }

@@ -5,6 +5,7 @@
 // use real_network::{perform_real_http_request, new_real_http_client, real_http_post}
 
 // ==================== 网络状态检查 ====================
+
 ///|
 pub async fn check_network_status() -> Unit {
   println("🌐 检查网络状态...")
@@ -164,7 +165,7 @@ pub fn parse_api_key_from_args(args : Array[String]) -> String? {
 // 解析 Int 参数，支持 --flag=VALUE 与 --flag VALUE 两种形式
 
 ///|
-pub fn parse_int_flag_from_args(args : Array[String], flag : String) -> Int? {
+pub fn parse_int_flag_from_args(args : Array[String], flag : String) -> Int32? {
   let mut i = 0
   while i < args.length() {
     let arg_opt = args.get(i)

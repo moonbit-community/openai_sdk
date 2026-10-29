@@ -2,23 +2,24 @@
 // 使用真实的HTTP客户端
 
 // 错误类型定义
+
 ///|
-pub typealias (String, Int, String) as HttpError // (error_type, status_code, message)
+pub type HttpError = (String, Int32, String) // (error_type, status_code, message)
 
 // HTTP请求类型
 
 ///|
-pub typealias (String, String, Array[String], String) as HttpRequest // (http_method, url, headers, body)
+pub type HttpRequest = (String, String, Array[String], String) // (http_method, url, headers, body)
 
 // HTTP响应类型
 
 ///|
-pub typealias (Int, Array[String], String) as HttpResponse // (status_code, headers, body)
+pub type HttpResponse = (Int32, Array[String], String) // (status_code, headers, body)
 
 // HTTP客户端类型
 
 ///|
-pub typealias (String, Int, Int, String) as HttpClient // (base_url, timeout_seconds, max_retries, user_agent)
+pub type HttpClient = (String, Int32, Int32, String) // (base_url, timeout_seconds, max_retries, user_agent)
 
 // 创建HTTP客户端
 
@@ -32,8 +33,8 @@ pub fn new_http_client(base_url : String) -> HttpClient {
 ///|
 pub fn new_http_client_with_config(
   base_url : String,
-  timeout_seconds : Int,
-  max_retries : Int,
+  timeout_seconds : Int32,
+  max_retries : Int32,
   user_agent : String,
 ) -> HttpClient {
   (base_url, timeout_seconds, max_retries, user_agent)
@@ -188,7 +189,6 @@ pub async fn send_openai_request(
     let _ = println("→ POST " + url)
     let dbg = build_masked_headers_string(headers, api_key)
     let _ = println("→ Headers: " + dbg)
-
   }
   let request = new_http_request("POST", url, headers, request_body)
 
@@ -223,7 +223,6 @@ pub async fn http_post(
             attempt = attempt + 1
             if attempt < max_retries {
               let _ = wait_before_retry(attempt)
-
             }
           }
         }
@@ -241,7 +240,7 @@ pub async fn perform_http_request(
   url : String,
   headers : Array[String],
   body : String,
-  timeout : Int,
+  timeout : Int32,
 ) -> Result[HttpResponse, HttpError] {
   let _ = parse_url(url)
   perform_real_http_request(http_method, url, headers, body, timeout)
@@ -252,7 +251,9 @@ pub async fn perform_http_request(
 // URL解析函数
 
 ///|
-fn parse_url(url : String) -> Result[(String, String, Int, String), HttpError] {
+fn parse_url(
+  url : String,
+) -> Result[(String, String, Int32, String), HttpError] {
   // 解析协议
   let protocol_end = find_substring(url, "://")
   match protocol_end {
@@ -296,7 +297,7 @@ fn parse_url(url : String) -> Result[(String, String, Int, String), HttpError] {
 // 等待重试
 
 ///|
-pub async fn wait_before_retry(attempt : Int) -> Int {
+pub async fn wait_before_retry(attempt : Int32) -> Int32 {
   // 指数退避（毫秒）：500ms, 1s, 2s, 4s, 8s，封顶 10s
   let base_ms = 500
   let mut delay_ms = base_ms
@@ -334,7 +335,7 @@ pub fn json_serialize(value : String) -> String {
           '\n' => result = result + "\\n"
           '\r' => result = result + "\\r"
           '\t' => result = result + "\\t"
-          _ => result = result + Int::unsafe_to_char(c).to_string()
+          _ => result = result + Int32::unsafe_to_char(c.to_int()).to_string()
         }
     }
     i = i + 1
@@ -439,7 +440,7 @@ pub fn extract_json_field(json : String, field_name : String) -> String? {
 // ========== JSON 值解析辅助（避免破坏现有行为，返回原始子串） ==========
 
 ///|
-fn util_skip_ws(s : String, start : Int) -> Int {
+fn util_skip_ws(s : String, start : Int32) -> Int32 {
   let mut i = start
   while i < s.length() {
     match s.get(i) {
@@ -454,11 +455,10 @@ fn util_skip_ws(s : String, start : Int) -> Int {
 }
 
 ///|
-fn util_find_string_end(s : String, quote_start : Int) -> Int? {
+fn util_find_string_end(s : String, quote_start : Int32) -> Int32? {
   match s.get(quote_start) {
     Some('"') => {
       let _ = ()
-
     }
     _ => return None
   }
@@ -476,7 +476,6 @@ fn util_find_string_end(s : String, quote_start : Int) -> Int? {
           return Some(i)
         } else {
           let _ = ()
-
         }
     }
     i = i + 1
@@ -485,7 +484,7 @@ fn util_find_string_end(s : String, quote_start : Int) -> Int? {
 }
 
 ///|
-fn util_extract_json_value(s : String, value_start : Int) -> (String, Int)? {
+fn util_extract_json_value(s : String, value_start : Int32) -> (String, Int32)? {
   if value_start >= s.length() {
     return None
   }
@@ -526,7 +525,6 @@ fn util_extract_json_value(s : String, value_start : Int) -> (String, Int)? {
               bracket = bracket - 1
             } else {
               let _ = ()
-
             }
         }
         i = i + 1
@@ -569,7 +567,6 @@ fn util_extract_json_value(s : String, value_start : Int) -> (String, Int)? {
               }
             } else {
               let _ = ()
-
             }
         }
         i = i + 1
@@ -602,7 +599,7 @@ fn util_extract_json_value(s : String, value_start : Int) -> (String, Int)? {
 // 查找子字符串
 
 ///|
-pub fn find_substring(str : String, pattern : String) -> Int? {
+pub fn find_substring(str : String, pattern : String) -> Int32? {
   let pattern_length = pattern.length()
   let str_length = str.length()
   let mut i = 0
@@ -636,7 +633,11 @@ pub fn find_substring(str : String, pattern : String) -> Int? {
 // 从指定位置开始查找子字符串
 
 ///|
-pub fn find_substring_from(str : String, pattern : String, start : Int) -> Int? {
+pub fn find_substring_from(
+  str : String,
+  pattern : String,
+  start : Int32,
+) -> Int32? {
   let pattern_length = pattern.length()
   let str_length = str.length()
   let mut i = start
@@ -670,14 +671,14 @@ pub fn find_substring_from(str : String, pattern : String, start : Int) -> Int? 
 // 提取子字符串
 
 ///|
-pub fn extract_substring(str : String, start : Int, end : Int) -> String {
+pub fn extract_substring(str : String, start : Int32, end : Int32) -> String {
   let mut result = ""
   let mut i = start
   while i < end && i < str.length() {
     let char = str.get(i)
     match char {
       None => break
-      Some(c) => result = result + Int::unsafe_to_char(c).to_string()
+      Some(c) => result = result + Int32::unsafe_to_char(c.to_int()).to_string()
     }
     i = i + 1
   }
@@ -687,14 +688,14 @@ pub fn extract_substring(str : String, start : Int, end : Int) -> String {
 // 字符串截取
 
 ///|
-pub fn string_substring_from(str : String, start : Int) -> String {
+pub fn string_substring_from(str : String, start : Int32) -> String {
   let mut result = ""
   let mut i = start
   while i < str.length() {
     let char = str.get(i)
     match char {
       None => break
-      Some(c) => result = result + Int::unsafe_to_char(c).to_string()
+      Some(c) => result = result + Int32::unsafe_to_char(c.to_int()).to_string()
     }
     i = i + 1
   }
@@ -704,7 +705,7 @@ pub fn string_substring_from(str : String, start : Int) -> String {
 // 整数转字符串
 
 ///|
-pub fn int_to_string(n : Int) -> String {
+pub fn int_to_string(n : Int32) -> String {
   if n == 0 {
     return "0"
   }
@@ -716,7 +717,7 @@ pub fn int_to_string(n : Int) -> String {
   }
   while num > 0 {
     let digit = num % 10
-    let digit_char = Int::unsafe_to_char(digit + 48) // 48 is '0'
+    let digit_char = Int32::unsafe_to_char(digit + 48) // 48 is '0'
     result = digit_char.to_string() + result
     num = num / 10
   }
@@ -729,7 +730,7 @@ pub fn int_to_string(n : Int) -> String {
 // 字符串转整数
 
 ///|
-pub fn string_to_int(s : String) -> Int {
+pub fn string_to_int(s : String) -> Int32 {
   let mut result = 0
   let mut i = 0
   let mut is_negative = false
@@ -752,8 +753,7 @@ pub fn string_to_int(s : String) -> Int {
       None => break
       Some(c) =>
         if c >= '0' && c <= '9' {
-          result = result * 10 +
-            (c.reinterpret_as_uint().reinterpret_as_int() - 48)
+          result = result * 10 + (c.to_int() - 48)
         } else {
           break
         }

@@ -1,52 +1,47 @@
 name: CI
-
 on:
   push:
-    branches: ["main"]
+    branches: [main]
   pull_request:
-    branches: ["main"]
   workflow_dispatch:
-
+permissions:
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
-    name: Build and Test
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [latest, nightly]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Setup Moonbit
-        uses: hustcer/setup-moonbit@develop
-
-      - name: Check Moonbit version
+      - uses: actions/checkout@v4
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- ${{ matrix.channel }}
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - name: Build and test
         run: |
           moon version --all
           moon update
-
-      - name: Build project
-        run: |
-          moon build --target native
-
-      - name: Run tests
-        run: |
+          moon check --target native --deny-warn
+          moon build --target native --deny-warn
+          moon fmt
+          moon info --target native
+          git diff --exit-code
           moon test --target native
-
-      - name: Generate coverage report
+          moon test --target native --release
+      - name: Collect coverage
         run: |
-          echo "Running tests with coverage..."
-          moon test --enable-coverage
-          echo "Generating coverage report..."
+          moon test --target native --enable-coverage
           moon coverage report -f cobertura -o coverage.xml
-          echo "Coverage report generated:"
-          ls -la coverage.xml || echo "No coverage file found"
-        continue-on-error: true
-
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.channel }}
+          path: coverage.xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
+        continue-on-error: true
         with:
-          file: ./coverage.xml
+          files: ./coverage.xml
           fail_ci_if_error: false
-          verbose: true
-        continue-on-error: true 

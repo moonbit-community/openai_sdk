@@ -1,6 +1,7 @@
 // Go 风格适配器：提供接近 openai-go 的链式/命名风格包装
 
 // Client 构造与配置（Go: openai.NewClient / WithXxx）
+
 ///|
 pub fn go_new_client(api_key : String) -> OpenAIClient {
   new_client(api_key)
@@ -10,8 +11,8 @@ pub fn go_new_client(api_key : String) -> OpenAIClient {
 pub fn go_new_client_with_config(
   api_key : String,
   base_url : String,
-  timeout_seconds : Int,
-  max_retries : Int,
+  timeout_seconds : Int32,
+  max_retries : Int32,
   user_agent : String,
   debug : Bool,
 ) -> OpenAIClient {
@@ -39,13 +40,13 @@ pub fn go_with_project(
 ///|
 pub fn go_with_timeout(
   client : OpenAIClient,
-  timeout_seconds : Int,
+  timeout_seconds : Int32,
 ) -> OpenAIClient {
   set_timeout(client, timeout_seconds)
 }
 
 ///|
-pub fn go_with_retries(client : OpenAIClient, retries : Int) -> OpenAIClient {
+pub fn go_with_retries(client : OpenAIClient, retries : Int32) -> OpenAIClient {
   set_retries(client, retries)
 }
 
@@ -65,14 +66,12 @@ pub fn go_with_base_url(
   match org {
     None => {
       let _ = ()
-
     }
     Some(o) => nc = set_organization(nc, o)
   }
   match proj {
     None => {
       let _ = ()
-
     }
     Some(p) => nc = set_project(nc, p)
   }

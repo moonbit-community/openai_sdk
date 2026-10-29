@@ -2,6 +2,7 @@
 // 实现与Go SDK一致的API接口
 
 // 角色常量
+
 ///|
 pub const USER_ROLE : String = "user"
 
@@ -39,60 +40,83 @@ pub const DALL_E_2 : String = "dall-e-2"
 // 错误类型定义
 
 ///|
-pub typealias (String, String, Int) as OpenAIError // (error_type, message, status_code)
+pub type OpenAIError = (String, String, Int32) // (error_type, message, status_code)
 
 // 消息结构
 
 ///|
-pub typealias (String, String) as Message // (role, content)
+pub type Message = (String, String) // (role, content)
 
 // 工具调用相关类型
 
 ///|
-pub typealias (String, String, String, String) as ToolCall // (id, type, function_name, arguments)
+pub type ToolCall = (String, String, String, String) // (id, type, function_name, arguments)
 
 ///|
-pub typealias (String, String) as FunctionCall // (name, arguments)
+pub type FunctionCall = (String, String) // (name, arguments)
 
 ///|
-pub typealias (String, String, String) as ToolMessage // (role, content, tool_call_id)
+pub type ToolMessage = (String, String, String) // (role, content, tool_call_id)
 
 // 聊天完成响应
 
 ///|
-pub typealias (String, String, Int, String, Array[Choice], Usage) as ChatCompletionResponse
+pub type ChatCompletionResponse = (
+  String,
+  String,
+  Int32,
+  String,
+  Array[Choice],
+  Usage,
+)
 // (id, object, created, model, choices, usage)
 
 ///|
-pub typealias (Int, Message, String, ToolCall?) as Choice // (index, message, finish_reason, tool_calls)
+pub type Choice = (Int32, Message, String, ToolCall?) // (index, message, finish_reason, tool_calls)
 
 ///|
-pub typealias (Int, Int, Int) as Usage // (prompt_tokens, completion_tokens, total_tokens)
+pub type Usage = (Int32, Int32, Int32) // (prompt_tokens, completion_tokens, total_tokens)
 
 // 流式响应类型
 
 ///|
-pub typealias (String, String, Int, String, Array[StreamChoice], Usage?) as StreamChatCompletionResponse
+pub type StreamChatCompletionResponse = (
+  String,
+  String,
+  Int32,
+  String,
+  Array[StreamChoice],
+  Usage?,
+)
 // (id, object, created, model, choices, usage)
 
 ///|
-pub typealias (Int, Message?, String, ToolCall?) as StreamChoice // (index, delta, finish_reason, tool_calls)
+pub type StreamChoice = (Int32, Message?, String, ToolCall?) // (index, delta, finish_reason, tool_calls)
 
 // 结构化输出类型
 
 ///|
-pub typealias (String, String, String) as StructuredOutput // (type, schema, content)
+pub type StructuredOutput = (String, String, String) // (type, schema, content)
 
 // OpenAI客户端配置
 
 ///|
-pub typealias (String, String, Int, Int, String, Bool, String?, String?) as OpenAIConfig
+pub type OpenAIConfig = (
+  String,
+  String,
+  Int32,
+  Int32,
+  String,
+  Bool,
+  String?,
+  String?,
+)
 // (api_key, base_url, timeout, max_retries, user_agent, debug, organization, project)
 
 // OpenAI客户端
 
 ///|
-pub typealias (OpenAIConfig, HttpClient) as OpenAIClient // (config, http_client)
+pub type OpenAIClient = (OpenAIConfig, HttpClient) // (config, http_client)
 
 // 创建新的OpenAI客户端
 
@@ -121,8 +145,8 @@ pub fn new_client(api_key : String) -> OpenAIClient {
 pub fn new_client_with_config(
   api_key : String,
   base_url : String,
-  timeout_seconds : Int,
-  max_retries : Int,
+  timeout_seconds : Int32,
+  max_retries : Int32,
   user_agent : String,
   debug : Bool,
 ) -> OpenAIClient {
@@ -210,14 +234,12 @@ fn build_openai_extra_headers(config : OpenAIConfig) -> Array[String] {
   match organization {
     None => {
       let _ = ()
-
     }
     Some(org) => extra = extra + ["OpenAI-Organization: " + org]
   }
   match project {
     None => {
       let _ = ()
-
     }
     Some(pid) => extra = extra + ["OpenAI-Project: " + pid]
   }
@@ -288,7 +310,6 @@ pub async fn chat_completion(
   let request_body = build_chat_completion_request(messages, model)
   if debug {
     let _ = println("Request body: " + request_body)
-
   }
 
   // 发送HTTP请求
@@ -300,11 +321,9 @@ pub async fn chat_completion(
     Ok(response) => {
       if debug {
         let _ = println("Response status: " + response.0.to_string())
-
       }
       if debug {
         let _ = println("Response body: " + response.2)
-
       }
       parse_chat_completion_response(response)
     }
@@ -481,20 +500,25 @@ pub fn extract_choice_content(json_body : String) -> String {
 // 解析 JSON 辅助：判断空白
 
 ///|
-fn is_whitespace_char(c : Int) -> Bool {
+fn is_whitespace_char(c : Int32) -> Bool {
   c == ' ' || c == '\t' || c == '\n' || c == '\r'
 }
 
 // 跳过空白，返回第一个非空白字符的位置（或字符串末尾）
 
 ///|
-fn skip_whitespace(s : String, start : Int) -> Int {
+fn skip_whitespace(s : String, start : Int32) -> Int32 {
   let mut i = start
   while i < s.length() {
     let ch_opt = s.get(i)
     match ch_opt {
       None => break
-      Some(ch) => if is_whitespace_char(ch) { i = i + 1 } else { break }
+      Some(ch) =>
+        if is_whitespace_char(ch.to_int()) {
+          i = i + 1
+        } else {
+          break
+        }
     }
   }
   i
@@ -503,12 +527,11 @@ fn skip_whitespace(s : String, start : Int) -> Int {
 // 提取并解码以双引号开头的 JSON 字符串值
 
 ///|
-fn extract_quoted_string(s : String, quote_start : Int) -> (String, Int)? {
+fn extract_quoted_string(s : String, quote_start : Int32) -> (String, Int32)? {
   let first_opt = s.get(quote_start)
   match first_opt {
     Some('"') => {
       let _ = ()
-
     }
     _ => return None
   }
@@ -536,7 +559,7 @@ fn extract_quoted_string(s : String, quote_start : Int) -> (String, Int)? {
             // 简化处理 \uXXXX：原样保留
             out = out + "\\u"
           } else {
-            out = out + Int::unsafe_to_char(ch).to_string()
+            out = out + Int32::unsafe_to_char(ch.to_int()).to_string()
           }
           escaping = false
         } else if ch == '\\' {
@@ -545,7 +568,7 @@ fn extract_quoted_string(s : String, quote_start : Int) -> (String, Int)? {
           // 结束
           return Some((out, i + 1))
         } else {
-          out = out + Int::unsafe_to_char(ch).to_string()
+          out = out + Int32::unsafe_to_char(ch.to_int()).to_string()
         }
     }
     i = i + 1
@@ -559,7 +582,7 @@ fn extract_quoted_string(s : String, quote_start : Int) -> (String, Int)? {
 fn extract_string_value_for_key(
   s : String,
   key : String,
-  start : Int,
+  start : Int32,
 ) -> String? {
   let key_token = "\"" + key + "\""
   let key_pos_opt = find_substring_from(s, key_token, start)
@@ -611,22 +634,14 @@ pub fn extract_choice_message_content(json_body : String) -> String? {
             json_body, "content", message_pos,
           )
           match content_opt {
-            Some(s) =>
-              if s.length() > 0 {
-                return Some(s)
-              } else {
-                let _ = ()
-
-              }
+            Some(s) => if s.length() > 0 { return Some(s) } else { let _ = () }
             None => {
               let _ = ()
-
             }
           }
         }
         None => {
           let _ = ()
-
         }
       }
       // 其次找 delta.content（流式）
@@ -700,7 +715,6 @@ pub async fn stream_chat_completion(
     let _ = println("Stream request body: " + request_body)
     // 引用该函数以避免未使用警告，同时不改变行为
     let _ = extract_last_user_message(messages)
-
   }
 
   // 发送HTTP请求（为流式添加 Accept 头）
@@ -726,7 +740,6 @@ pub async fn stream_chat_completion(
     Ok(response) => {
       if debug {
         let _ = println("Stream response status: " + response.0.to_string())
-
       }
       // 为避免输出原始 SSE data: 行，这里不打印流式响应原文
       parse_stream_chat_completion_response(response)
@@ -831,9 +844,8 @@ fn parse_sse_stream_body(
       }
       Some('\r') => {
         let _ = ()
-
       }
-      Some(c) => line = line + Int::unsafe_to_char(c).to_string()
+      Some(c) => line = line + Int32::unsafe_to_char(c.to_int()).to_string()
     }
     i = i + 1
   }
@@ -890,7 +902,6 @@ pub async fn tool_chat_completion(
   let request_body = build_tool_chat_completion_request(messages, model, tools)
   if debug {
     let _ = println("Tool request body: " + request_body)
-
   }
 
   // 发送HTTP请求
@@ -902,11 +913,9 @@ pub async fn tool_chat_completion(
     Ok(response) => {
       if debug {
         let _ = println("Tool response status: " + response.0.to_string())
-
       }
       if debug {
         let _ = println("Tool response body: " + response.2)
-
       }
       parse_tool_chat_completion_response(response)
     }
@@ -1038,7 +1047,6 @@ pub async fn structured_chat_completion(
   )
   if debug {
     let _ = println("Structured request body: " + request_body)
-
   }
 
   // 发送HTTP请求
@@ -1050,11 +1058,9 @@ pub async fn structured_chat_completion(
     Ok(response) => {
       if debug {
         let _ = println("Structured response status: " + response.0.to_string())
-
       }
       if debug {
         let _ = println("Structured response body: " + response.2)
-
       }
       parse_structured_chat_completion_response(response)
     }
@@ -1203,13 +1209,11 @@ pub async fn stream_chat(
               match choice {
                 None => {
                   let _ = ()
-
                 }
                 Some(c) =>
                   match c.1 {
                     None => {
                       let _ = ()
-
                     }
                     Some(msg) => full_content = full_content + msg.1
                   }
@@ -1354,7 +1358,6 @@ pub async fn handle_tool_result(
   let (api_key, _base_url, _timeout, _retries, _user_agent, debug, _org, _proj) = config
   if debug {
     let _ = println("Request body: " + request_body)
-
   }
   let extra_headers = build_openai_extra_headers(config)
   let response_result = send_openai_request(
@@ -1364,11 +1367,9 @@ pub async fn handle_tool_result(
     Ok(response) => {
       if debug {
         let _ = println("Response status: " + response.0.to_string())
-
       }
       if debug {
         let _ = println("Response body: " + response.2)
-
       }
       parse_chat_completion_response(response).map(fn(r) {
         if r.4.length() > 0 {
@@ -1436,7 +1437,7 @@ pub fn enable_debug(client : OpenAIClient) -> OpenAIClient {
 ///|
 pub fn set_timeout(
   client : OpenAIClient,
-  timeout_seconds : Int,
+  timeout_seconds : Int32,
 ) -> OpenAIClient {
   let (config, _http_client) = client
   let (
@@ -1462,7 +1463,7 @@ pub fn set_timeout(
 // 设置最大重试次数
 
 ///|
-pub fn set_retries(client : OpenAIClient, max_retries : Int) -> OpenAIClient {
+pub fn set_retries(client : OpenAIClient, max_retries : Int32) -> OpenAIClient {
   let (config, _http_client) = client
   let (
     api_key,
@@ -1649,13 +1650,12 @@ fn url_encode_simple(s : String) -> String {
     match ch_opt {
       None => {
         let _ = ()
-
       }
       Some(ch) =>
         if ch == ' ' {
           out = out + "%20"
         } else {
-          out = out + Int::unsafe_to_char(ch).to_string()
+          out = out + Int32::unsafe_to_char(ch.to_int()).to_string()
         }
     }
     i = i + 1
@@ -1675,7 +1675,6 @@ fn extract_last_user_message(messages : Array[Message]) -> String? {
       Some(m) => if m.0 == USER_ROLE { return Some(m.1) }
       None => {
         let _ = ()
-
       }
     }
   }
@@ -1744,7 +1743,7 @@ pub fn extract_location_from_question(q : String) -> String? {
 ///|
 async fn geocode_location(
   location : String,
-  timeout : Int,
+  timeout : Int32,
 ) -> Result[(String, String), String] {
   let url = "https://geocoding-api.open-meteo.com/v1/search?name=" +
     url_encode_simple(location) +
@@ -1809,7 +1808,7 @@ pub async fn fetch_weather_for_location(
                     let mut brace_count = 0
                     let mut in_string = false
                     let mut escape_next = false
-                    let mut end_idx : Int = -1
+                    let mut end_idx : Int32 = -1
                     while i < b.length() {
                       let ch_opt = b.get(i)
                       match ch_opt {
